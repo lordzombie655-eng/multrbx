@@ -8,10 +8,10 @@ $allowedVersions = array('AppAndroidV2.234.70767','AppAndroidV2.276.102913','App
 $rbxUserAgent = array('Mozilla/5.0 (3946MB; 1600x900; 240x240; 1066x600; Samsung go fuck yourself; 9) AppleWebKit/537.36 (KHTML, like Gecko)  ROBLOX Android App 2.269.94916 Tablet Hybrid()');
 $allowedmd5hashes = array('2b4ba7fc-5843-44cf-b107-ba22d3319dcd');
 
-$hostdb = "127.0.0.1";
-$accdb = "multrbx";
-$passdb = "LszD73wJ2@vcNK(P";
-$namedb = "multrbxnew";
+$hostdb = "sql5.freesqldatabase.com";
+$accdb = "sql5838007";
+$passdb = "3bzhjZetED";
+$namedb = "sql5838007";
 
 $SignType = 1; // 1 for rbxsig, 2 for no rbxsig
 $Offline = false;
