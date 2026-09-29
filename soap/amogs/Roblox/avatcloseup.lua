@@ -3,7 +3,7 @@
 
 function start(userId, baseUrl)
     userId = tostring(userId)
-    baseUrl = tostring(baseUrl or "http://mulrbx.com")
+    baseUrl = tostring(baseUrl or "https://multrbx-lol.onrender.com/")
 
     if string.sub(baseUrl, -1) == "/" then
         baseUrl = string.sub(baseUrl, 1, -2)
