@@ -1,26 +1,48 @@
-<?php 
-header('Content-type:image/png');
-include($_SERVER['DOCUMENT_ROOT'] . '/config.php');
-$errimg = file_get_contents($_SERVER['DOCUMENT_ROOT'] . "/Images/IDE/not-approved.png");
-$penimg = file_get_contents($_SERVER['DOCUMENT_ROOT'] . "/Images/IDE/pending.png");
-$id = (int)($_GET['id'] ?? die($errimg));
+<?php
+/**
+ * Simple avatar endpoint: /Tools/Avatar.ashx?id=USER_ID
+ */
 
+header('Content-Type: image/png');
+header('Cache-Control: public, max-age=120');
 
+$docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
 
-
-		$AssetFetch = $MainDB->prepare("SELECT * FROM users WHERE id = :id");
-		$AssetFetch->execute([':id' => $id]);
-		$Results = $AssetFetch->fetch(PDO::FETCH_ASSOC);
-		switch(true){case(!$Results):die($errimg);break;}
-		
-		switch (file_exists($_SERVER['DOCUMENT_ROOT'] . "/Tools/RenderedUsers/". $id .".png")){
-			case true:
-				die(file_get_contents($_SERVER['DOCUMENT_ROOT'] . "/Tools/RenderedUsers/". $id .".png"));
-				break;
-			case false:
-				die($penimg);
+if (file_exists($docRoot . '/config.php')) {
+    include $docRoot . '/config.php';
 }
 
+$errPath = $docRoot . '/Images/IDE/not-approved.png';
+$penPath = $docRoot . '/Images/IDE/pending.png';
+$errimg = file_exists($errPath) ? file_get_contents($errPath) : null;
+$penimg = file_exists($penPath) ? file_get_contents($penPath) : null;
 
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+if ($id < 1) {
+    if ($errimg) { echo $errimg; } else { echo ''; }
+    exit;
+}
+
+if (isset($MainDB)) {
+    $stmt = $MainDB->prepare('SELECT id FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $id]);
+    if (!$stmt->fetch()) {
+        if ($errimg) { echo $errimg; } else { echo ''; }
+        exit;
+    }
+}
+
+$path = $docRoot . '/Tools/RenderedUsers/' . $id . '.png';
+if (file_exists($path) && filesize($path) > 50) {
+    readfile($path);
+    exit;
+}
+
+if ($penimg) {
+    echo $penimg;
+} else {
+    // transparent 1x1
+    echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+}
 ?>
