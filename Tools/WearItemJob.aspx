@@ -1,44 +1,70 @@
 <?php
-include($_SERVER['DOCUMENT_ROOT'] . '/config.php');
-include($_SERVER['DOCUMENT_ROOT'] . '/UserInfo.php');
-switch (true) {
-    case ($RBXTICKET == null):
-        die(header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=4'));
-        break;
+/**
+ * Wear / unwear an owned item, then trigger avatar re-render.
+ */
+
+include $_SERVER['DOCUMENT_ROOT'] . '/config.php';
+include $_SERVER['DOCUMENT_ROOT'] . '/UserInfo.php';
+
+if ($RBXTICKET === null) {
+    header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=4');
+    exit;
 }
 
-$WearItem = (int) ($_GET['id'] ?? die(header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5')));
-$RequestType = ($_GET['RequestType'] ?? die(header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5')));
+$WearItem = (int)($_GET['id'] ?? 0);
+$RequestType = $_GET['RequestType'] ?? '';
 
-$WardrobeSrh = $MainDB->prepare("SELECT * FROM bought WHERE boughtid = :id AND boughtby = :bid AND itemtype != 'model' AND itemtype != 'advertisement' AND itemtype != 'decal' AND itemtype != 'audio' ORDER BY id DESC LIMIT 6");
-$WardrobeSrh->execute([":id" => $WearItem, ":bid" => $id]);
-$ReWDS = $WardrobeSrh->fetchAll();
-
-switch (true) {
-    case (!$ReWDS):
-        die(header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5'));
-        break;
+if ($WearItem < 1 || $RequestType === '') {
+    header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5');
+    exit;
 }
+
+$WardrobeSrh = $MainDB->prepare(
+    "SELECT id FROM bought
+     WHERE boughtid = :id AND boughtby = :bid
+       AND itemtype NOT IN ('model','advertisement','decal','audio')
+     ORDER BY id DESC LIMIT 1"
+);
+$WardrobeSrh->execute([':id' => $WearItem, ':bid' => $id]);
+$row = $WardrobeSrh->fetch(PDO::FETCH_ASSOC);
+
+if (!$row) {
+    header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5');
+    exit;
+}
+
+$renderUrl = $baseUrl . '/soap/amogs/roblox/render.php?id=' . (int)$id . '&redirect=false';
 
 switch ($RequestType) {
-    case "WearItem":
-        $UpdateDB = $MainDB->prepare("UPDATE bought SET wearing = '1' WHERE boughtid=? AND boughtby=?")->execute([$WearItem, $id]);
+    case 'WearItem':
+        $MainDB->prepare("UPDATE bought SET wearing = '1' WHERE boughtid = ? AND boughtby = ?")
+               ->execute([$WearItem, $id]);
+        // Fire-and-forget render (do not follow redirects / do not block forever)
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 25,
+                'ignore_errors' => true,
+            ],
+        ]);
+        @file_get_contents($renderUrl, false, $ctx);
+        header('Location: ' . $baseUrl . '/My/Character.aspx');
+        exit;
 
-        // Load the URL in the background
-        file_get_contents('http://mulrbx.com/soap/amogs/roblox/render.php?id='.$id);
+    case 'UnWearItem':
+        $MainDB->prepare("UPDATE bought SET wearing = NULL WHERE boughtid = ? AND boughtby = ?")
+               ->execute([$WearItem, $id]);
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 25,
+                'ignore_errors' => true,
+            ],
+        ]);
+        @file_get_contents($renderUrl, false, $ctx);
+        header('Location: ' . $baseUrl . '/My/Character.aspx');
+        exit;
 
-        die(header('Location: ' . $baseUrl . '/My/Character.aspx'));
-        break;
-    case "UnWearItem":
-        $UpdateDB = $MainDB->prepare("UPDATE bought SET wearing = null WHERE boughtid=? AND boughtby=?")->execute([$WearItem, $id]);
-
-        // Load the URL in the background
-        file_get_contents('http://mulrbx.com/soap/amogs/roblox/render.php?id='.$id);
-
-        die(header('Location: ' . $baseUrl . '/My/Character.aspx'));
-        break;
     default:
-        die(header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5'));
-        break;
+        header('Location: ' . $baseUrl . '/Tools/ShowPopup.aspx?Err=5');
+        exit;
 }
 ?>
