@@ -2,21 +2,33 @@ RewriteEngine On
 
 # Redirect IP address to mulrbx.com
 RewriteCond %{HTTP_HOST} ^37\.143\.61\.72$
-RewriteRule ^(.*)$ http://mulrbx.com/$1 [R=301,L]
+RewriteRule ^(.*)$ https://multrbx-lol.onrender.com/ [R=301,L]
 
-# Remove .php extension from URLs
-RewriteCond %{THE_REQUEST} /([^.]+)\.php [NC]
-RewriteRule ^ /%1 [NC,L,R]
+# Remove .php extension from URLs (pretty URLs)
+RewriteCond %{THE_REQUEST} \s/+([^.]+)\.php[\s?] [NC]
+RewriteRule ^ /%1 [NC,L,R=301]
 
-# Append .php to filenames
+# Remove .aspx extension from browser URL (optional pretty URL)
+RewriteCond %{THE_REQUEST} \s/+([^.]+)\.aspx[\s?] [NC]
+RewriteRule ^ /%1 [NC,L,R=301]
+
+# If request is /Catalog or /CatalogItem etc. and .php exists, serve it
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^ %{REQUEST_URI}.php [NC,L]
+
+# If .aspx file exists, serve it (PHP via AddHandler below)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.aspx -f
+RewriteRule ^ %{REQUEST_URI}.aspx [NC,L]
 
 # Error documents
 ErrorDocument 404 /RobloxDefaultErrorPage.aspx?code=404
 ErrorDocument 500 /RobloxDefaultErrorPage.aspx?code=500
 
-# AddHandler and AddType configurations
+# Treat .ashx and .aspx as PHP
 AddHandler application/x-httpd-php .ashx
 AddType application/x-httpd-php .ashx
 AddHandler application/x-httpd-php .aspx
